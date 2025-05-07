@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hardware Monitor</title>
+    <title>Hardware Watcher</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="/webjars/bootstrap/5.3.0/css/bootstrap.min.css">
@@ -23,7 +23,7 @@
         <div class="row align-items-center">
             <div class="col-md-6">
                 <h1 class="display-4 text-gradient">
-                    <i class="fas fa-microchip me-2"></i>Hardware Monitor
+                    <i class="fas fa-microchip me-2"></i>Hardware Watcher
                 </h1>
                 <p class="text-muted">Real-time system monitoring dashboard</p>
             </div>
@@ -53,7 +53,7 @@
             <div class="card-header bg-primary bg-opacity-10 border-primary">
                 <h2 class="h5 mb-0">
                     <i class="fas fa-microchip me-2"></i>CPU
-                    <span class="float-end" th:text="${hardwareInfo.cpuInfo.name}">CPU Name</span>
+                    <span class="float-end" th:text="${hardwareInfo.CPUInfo.name}">CPU Name</span>
                 </h2>
             </div>
             <div class="card-body">
@@ -63,11 +63,11 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="text-muted">Usage</span>
                                 <span class="fw-bold"
-                                      th:text="${#numbers.formatDecimal(hardwareInfo.cpuInfo.cpuLoad, 1, 2) + '%'}">0%</span>
+                                      th:text="${#numbers.formatDecimal(hardwareInfo.CPUInfo.cpuLoad, 1, 2) + '%'}">0%</span>
                             </div>
                             <div class="progress bg-dark" style="height: 10px;">
                                 <div class="progress-bar bg-gradient-cpu" role="progressbar"
-                                     th:style="'width: ' + ${#numbers.formatDecimal(hardwareInfo.cpuInfo.cpuLoad, 1, 2)} + '%'"></div>
+                                     th:style="'width: ' + ${#numbers.formatDecimal(hardwareInfo.CPUInfo.cpuLoad, 1, 2)} + '%'"></div>
                             </div>
                         </div>
 
@@ -75,11 +75,11 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="text-muted">Temperature</span>
                                 <span class="fw-bold"
-                                      th:text="${hardwareInfo.cpuInfo.temperature != -1 ? #numbers.formatDecimal(hardwareInfo.cpuInfo.temperature, 1, 2) + '°C' : 'N/A'}">0°C</span>
+                                      th:text="${hardwareInfo.CPUInfo.temperature != -1 ? #numbers.formatDecimal(hardwareInfo.CPUInfo.temperature, 1, 2) + '°C' : 'N/A'}">0°C</span>
                             </div>
                             <div class="progress bg-dark" style="height: 10px;">
                                 <div class="progress-bar bg-gradient-danger" role="progressbar"
-                                     th:style="${hardwareInfo.cpuInfo.temperature != -1} ? 'width: ' + ${hardwareInfo.cpuInfo.temperature / 100 * 100} + '%' : 'width: 0%'"></div>
+                                     th:style="${hardwareInfo.CPUInfo.temperature != -1} ? 'width: ' + ${hardwareInfo.CPUInfo.temperature / 100 * 100} + '%' : 'width: 0%'"></div>
                             </div>
                         </div>
 
@@ -88,21 +88,21 @@
                                 <div class="col-6 mb-2">
                                     <small class="text-muted d-block">Cores</small>
                                     <span class="fw-bold"
-                                          th:text="${hardwareInfo.cpuInfo.physicalCores + 'P / ' + hardwareInfo.cpuInfo.logicalCores + 'L'}">0P / 0L</span>
+                                          th:text="${hardwareInfo.CPUInfo.physicalCores + 'P / ' + hardwareInfo.CPUInfo.logicalCores + 'L'}">0P / 0L</span>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <small class="text-muted d-block">Frequency</small>
                                     <span class="fw-bold"
-                                          th:text="${hardwareInfo.cpuInfo.currentFreq}">0 GHz</span>
+                                          th:text="${hardwareInfo.CPUInfo.currentFreq}">0 GHz</span>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted d-block">Vendor</small>
-                                    <span class="fw-bold" th:text="${hardwareInfo.cpuInfo.vendor}">Vendor</span>
+                                    <span class="fw-bold" th:text="${hardwareInfo.CPUInfo.vendor}">Vendor</span>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted d-block">Architecture</small>
                                     <span class="fw-bold"
-                                          th:text="${hardwareInfo.cpuInfo.architecture}">Arch</span>
+                                          th:text="${hardwareInfo.CPUInfo.architecture}">Arch</span>
                                 </div>
                             </div>
                         </div>
@@ -113,7 +113,7 @@
                             <h6 class="text-muted mb-3">Core Load</h6>
                             <div class="row g-2">
                                 <div class="col-6 col-md-3"
-                                     th:each="coreLoad, stat : ${hardwareInfo.cpuInfo.coreLoads}">
+                                     th:each="coreLoad, stat : ${hardwareInfo.CPUInfo.coreLoads}">
                                     <div class="core-box rounded p-2 text-center">
                                         <small class="d-block text-muted">Core
                                             [[${stat.index}]]</small>
@@ -352,4 +352,158 @@
                     <i class="fas fa-network-wired me-2"></i>Network
                 </h2>
             </div>
-            <div class="
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6" th:each="network, stat : ${hardwareInfo.networkInfoList}">
+                        <div class="info-box bg-dark-3 rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0" th:text="${network.displayName}">Interface</h6>
+                                <span class="badge"
+                                      th:class="${network.connected} ? 'bg-success' : 'bg-secondary'"
+                                      th:text="${network.connected} ? 'Connected' : 'Disconnected'">Status</span>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">IPv4</small>
+                                    <span class="fw-bold"
+                                          th:text="${network.ipv4} ?: 'N/A'">0.0.0.0</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">MAC</small>
+                                    <span class="fw-bold" th:text="${network.macAddress}">00:00:00:00:00:00</span>
+                                </div>
+                            </div>
+
+                            <div class="network-speed mb-3">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-upload text-primary me-2"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Upload</small>
+                                                <span class="fw-bold"
+                                                      th:text="${#numbers.formatDecimal(network.uploadSpeed, 1, 2) + ' KB/s'}">0 KB/s</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-download text-success me-2"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Download</small>
+                                                <span class="fw-bold"
+                                                      th:text="${#numbers.formatDecimal(network.downloadSpeed, 1, 2) + ' KB/s'}">0 KB/s</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Sent</small>
+                                    <span class="fw-bold" th:text="${network.dataSent}">0 MB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Received</small>
+                                    <span class="fw-bold"
+                                          th:text="${network.dataReceived}">0 MB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Speed</small>
+                                    <span class="fw-bold" th:text="${network.speed}">0 Mbps</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-3 border-top border-primary text-center text-muted">
+        <small>Hardware Watcher &copy; 2023 | Powered by Spring Boot and OSHI</small>
+    </footer>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom JS -->
+<script src="/js/app.js"></script>
+
+<script>
+    // Auto-refresh every 5 seconds
+    function fetchData() {
+        fetch('/api/hardware')
+            .then(response => response.json())
+            .then(data => {
+                // 更新CPU数据
+                document.getElementById('cpu-load').innerText = data.cpuInfo.cpuLoad.toFixed(1) + '%';
+                // 更新其他数据...
+                setTimeout(fetchData, 5000); // 5秒后再次请求
+            });
+    }
+    // fetchData();
+
+    // Initialize charts
+    document.addEventListener('DOMContentLoaded', function () {
+        // CPU Core Load Chart
+        const coreLoads = [[${hardwareInfo.CPUInfo.coreLoads}]];
+        const coreLoadOptions = {
+            series: [{
+                name: 'Core Load',
+                data: coreLoads.map((load, index) => ({
+                    x: `Core ${index}`,
+                    y: load
+                }))
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                foreColor: '#fff',
+                toolbar: {
+                    show: false
+                }
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    horizontal: true,
+                    distributed: true
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            colors: ['#3a86ff', '#3a86ff', '#3a86ff', '#3a86ff', '#3a86ff', '#3a86ff', '#3a86ff', '#3a86ff'],
+            xaxis: {
+                categories: coreLoads.map((_, index) => `Core ${index}`),
+                labels: {
+                    style: {
+                        colors: '#adb5bd'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: '#adb5bd'
+                    }
+                }
+            },
+            grid: {
+                borderColor: 'rgba(255, 255, 255, 0.1)'
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        const coreLoadChart = new ApexCharts(document.querySelector("#coreLoadChart"), coreLoadOptions);
+        coreLoadChart.render();
+    });
+</script>
+</body>
+</html>

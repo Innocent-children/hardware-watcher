@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class HardwareWatcherApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(HardwareWatcherApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(HardwareWatcherApplication.class, args);
+    }
 
 }
