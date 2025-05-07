@@ -1,0 +1,110 @@
+:root {
+    --bg-dark: #0f172a;
+    --bg-dark-2: #1e293b;
+    --bg-dark-3: #334155;
+    --primary: #3a86ff;
+    --secondary: #8338ec;
+    --success: #06d6a0;
+    --danger: #ef476f;
+    --warning: #ffd166;
+    --info: #118ab2;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: #e2e8f0;
+}
+
+.bg-dark-2 {
+    background-color: var(--bg-dark-2);
+}
+
+.bg-dark-3 {
+    background-color: var(--bg-dark-3);
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+}
+
+.border-primary {
+    border-color: rgba(58, 134, 255, 0.3) !important;
+}
+
+/* Progress bar gradients */
+.bg-gradient-cpu {
+    background: linear-gradient(90deg, var(--primary), #4895ef);
+}
+
+.bg-gradient-memory {
+    background: linear-gradient(90deg, var(--secondary), #b5179e);
+}
+
+.bg-gradient-swap {
+    background: linear-gradient(90deg, #f72585, #b5179e);
+}
+
+.bg-gradient-gpu {
+    background: linear-gradient(90deg, #ff9e00, #ff9100);
+}
+
+.bg-gradient-vram {
+    background: linear-gradient(90deg, #ff5400, #ff6d00);
+}
+
+.bg-gradient-storage {
+    background: linear-gradient(90deg, #06d6a0, #0cb582);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(90deg, var(--danger), #f72585);
+}
+
+/* Card styling */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Core boxes */
+.core-box {
+    background-color: rgba(30, 41, 59, 0.5);
+    transition: all 0.3s ease;
+}
+
+.core-box:hover {
+    background-color: rgba(58, 134, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Network speed indicators */
+.network-speed i {
+    font-size: 1.5rem;
+}
+
+/* Uptime badge */
+.uptime-badge {
+    box-shadow: 0 0 10px rgba(58, 134, 255, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+
+    .system-info {
+        text-align: left !important;
+        margin-top: 1rem;
+    }
+}

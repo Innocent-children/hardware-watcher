@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardware Monitor</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.0/css/bootstrap.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/webjars/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ApexCharts -->
+    <script src="/webjars/apexcharts/3.37.1/dist/apexcharts.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-dark text-light">
+<div class="container-fluid">
+    <header class="py-4 border-bottom border-primary">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="display-4 text-gradient">
+                    <i class="fas fa-microchip me-2"></i>Hardware Monitor
+                </h1>
+                <p class="text-muted">Real-time system monitoring dashboard</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="system-info">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <div class="me-3 text-end">
+                            <h5 class="mb-0"
+                                th:text="${hardwareInfo.systemName + ' ' + hardwareInfo.osVersion}">
+                                System</h5>
+                            <small class="text-muted"
+                                   th:text="${hardwareInfo.systemManufacturer + ' ' + hardwareInfo.systemModel}">Manufacturer</small>
+                        </div>
+                        <div class="uptime-badge bg-primary rounded-pill px-3 py-2">
+                            <i class="fas fa-clock me-1"></i>
+                            <span th:text="${hardwareInfo.uptime}">Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="py-4">
+        <!-- CPU Section -->
+        <div class="card mb-4 bg-dark-2 border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h2 class="h5 mb-0">
+                    <i class="fas fa-microchip me-2"></i>CPU
+                    <span class="float-end" th:text="${hardwareInfo.cpuInfo.name}">CPU Name</span>
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-box bg-dark-3 rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Usage</span>
+                                <span class="fw-bold"
+                                      th:text="${#numbers.formatDecimal(hardwareInfo.cpuInfo.cpuLoad, 1, 2) + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-cpu" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(hardwareInfo.cpuInfo.cpuLoad, 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-box bg-dark-3 rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Temperature</span>
+                                <span class="fw-bold"
+                                      th:text="${hardwareInfo.cpuInfo.temperature != -1 ? #numbers.formatDecimal(hardwareInfo.cpuInfo.temperature, 1, 2) + '°C' : 'N/A'}">0°C</span>
+                            </div>
+                            <div class="progress bg-dark" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-danger" role="progressbar"
+                                     th:style="${hardwareInfo.cpuInfo.temperature != -1} ? 'width: ' + ${hardwareInfo.cpuInfo.temperature / 100 * 100} + '%' : 'width: 0%'"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-box bg-dark-3 rounded p-3">
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted d-block">Cores</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.cpuInfo.physicalCores + 'P / ' + hardwareInfo.cpuInfo.logicalCores + 'L'}">0P / 0L</span>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted d-block">Frequency</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.cpuInfo.currentFreq}">0 GHz</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Vendor</small>
+                                    <span class="fw-bold" th:text="${hardwareInfo.cpuInfo.vendor}">Vendor</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Architecture</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.cpuInfo.architecture}">Arch</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="bg-dark-3 rounded p-3 h-100">
+                            <h6 class="text-muted mb-3">Core Load</h6>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3"
+                                     th:each="coreLoad, stat : ${hardwareInfo.cpuInfo.coreLoads}">
+                                    <div class="core-box rounded p-2 text-center">
+                                        <small class="d-block text-muted">Core
+                                            [[${stat.index}]]</small>
+                                        <span class="d-block fw-bold"
+                                              th:text="${#numbers.formatDecimal(coreLoad, 1, 2) + '%'}">0%</span>
+                                        <div class="progress bg-dark mt-1" style="height: 5px;">
+                                            <div class="progress-bar bg-gradient-cpu"
+                                                 role="progressbar"
+                                                 th:style="'width: ' + ${#numbers.formatDecimal(coreLoad, 1, 2)} + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Section -->
+        <div class="card mb-4 bg-dark-2 border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h2 class="h5 mb-0">
+                    <i class="fas fa-memory me-2"></i>Memory
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-box bg-dark-3 rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">RAM</h6>
+                                <span class="fw-bold"
+                                      th:text="${hardwareInfo.memoryInfo.memoryUsagePercentage + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark mb-2" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-memory" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(hardwareInfo.memoryInfo.memoryUsagePercentage, 1, 2)} + '%'"></div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Used</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.memoryInfo.usedMemory}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Free</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.memoryInfo.availableMemory}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Total</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.memoryInfo.totalMemory}">0 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-box bg-dark-3 rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Swap</h6>
+                                <span class="fw-bold"
+                                      th:text="${hardwareInfo.memoryInfo.swapUsagePercentage + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark mb-2" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-swap" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(hardwareInfo.memoryInfo.swapUsagePercentage, 1, 2)} + '%'"></div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Used</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.memoryInfo.swapUsed}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Free</small>
+                                    <span class="fw-bold"
+                                          th:text="${#strings.substringAfter(hardwareInfo.memoryInfo.swapTotal, '-')}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Total</small>
+                                    <span class="fw-bold"
+                                          th:text="${hardwareInfo.memoryInfo.swapTotal}">0 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPU Section -->
+        <div class="card mb-4 bg-dark-2 border-primary"
+             th:each="gpu, stat : ${hardwareInfo.gpuInfoList}">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h2 class="h5 mb-0">
+                    <i class="fas fa-video me-2"></i>GPU [[${stat.index + 1}]]
+                    <span class="float-end" th:text="${gpu.name}">GPU Name</span>
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-box bg-dark-3 rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Usage</span>
+                                <span class="fw-bold"
+                                      th:text="${#numbers.formatDecimal(gpu.gpuLoad, 1, 2) + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-gpu" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(gpu.gpuLoad, 1, 2)} + '%'"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-box bg-dark-3 rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Temperature</span>
+                                <span class="fw-bold"
+                                      th:text="${#numbers.formatDecimal(gpu.temperature, 1, 2) + '°C'}">0°C</span>
+                            </div>
+                            <div class="progress bg-dark" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-danger" role="progressbar"
+                                     th:style="'width: ' + ${gpu.temperature / 100 * 100} + '%'"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-box bg-dark-3 rounded p-3">
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted d-block">Vendor</small>
+                                    <span class="fw-bold" th:text="${gpu.vendor}">Vendor</span>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted d-block">Driver</small>
+                                    <span class="fw-bold"
+                                          th:text="${gpu.driverVersion}">Driver</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Display</small>
+                                    <span class="fw-bold"
+                                          th:text="${gpu.displayMode}">Display</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Resolution</small>
+                                    <span class="fw-bold"
+                                          th:text="${gpu.resolution}">Resolution</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="info-box bg-dark-3 rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">VRAM</h6>
+                                <span class="fw-bold"
+                                      th:text="${#numbers.formatDecimal(gpu.vramUsagePercentage, 1, 2) + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark mb-2" style="height: 10px;">
+                                <div class="progress-bar bg-gradient-vram" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(gpu.vramUsagePercentage, 1, 2)} + '%'"></div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Used</small>
+                                    <span class="fw-bold" th:text="${gpu.usedVram}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Free</small>
+                                    <span class="fw-bold"
+                                          th:text="${#strings.substringAfter(gpu.vram, '-')}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Total</small>
+                                    <span class="fw-bold" th:text="${gpu.vram}">0 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Section -->
+        <div class="card mb-4 bg-dark-2 border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h2 class="h5 mb-0">
+                    <i class="fas fa-hdd me-2"></i>Storage
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4"
+                         th:each="storage, stat : ${hardwareInfo.storageInfoList}">
+                        <div class="info-box bg-dark-3 rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0" th:text="${storage.name}">Drive</h6>
+                                <span class="fw-bold"
+                                      th:text="${#numbers.formatDecimal(storage.usagePercentage, 1, 2) + '%'}">0%</span>
+                            </div>
+                            <div class="progress bg-dark mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-gradient-storage" role="progressbar"
+                                     th:style="'width: ' + ${#numbers.formatDecimal(storage.usagePercentage, 1, 2)} + '%'"></div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Used</small>
+                                    <span class="fw-bold" th:text="${storage.usedSpace}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Free</small>
+                                    <span class="fw-bold" th:text="${storage.freeSpace}">0 GB</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Total</small>
+                                    <span class="fw-bold"
+                                          th:text="${storage.totalSpace}">0 GB</span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted d-block">Type</small>
+                                <span class="fw-bold" th:text="${storage.type}">Type</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Section -->
+        <div class="card mb-4 bg-dark-2 border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h2 class="h5 mb-0">
+                    <i class="fas fa-network-wired me-2"></i>Network
+                </h2>
+            </div>
+            <div class="
