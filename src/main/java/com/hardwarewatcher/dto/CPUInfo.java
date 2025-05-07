@@ -21,4 +21,5 @@ public class CPUInfo {
     private String processorId;
     private long contextSwitches;
     private long interrupts;
+    private List<String> coreFrequencies;
 }

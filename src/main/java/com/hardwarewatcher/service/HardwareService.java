@@ -59,6 +59,13 @@ public class HardwareService {
         cpuInfo.setSystemLoad(processor.getSystemLoadAverage(1)[0] / 100);
         cpuInfo.setCpuLoad(processor.getSystemCpuLoad(1000));
 
+        long[] currentFreq = processor.getCurrentFreq();
+        List<String> coreFreqList = new ArrayList<>();
+        for (long freq : currentFreq) {
+            coreFreqList.add(FormatUtil.formatHertz(freq));
+        }
+        cpuInfo.setCoreFrequencies(coreFreqList);
+
         // Core loads
         double[] load = processor.getProcessorCpuLoad(1000);
         List<Double> coreLoads = new ArrayList<>();
@@ -68,7 +75,7 @@ public class HardwareService {
         cpuInfo.setCoreLoads(coreLoads);
 
         // Frequency - 修正这部分
-        long[] currentFreq = processor.getCurrentFreq();
+        currentFreq = processor.getCurrentFreq();
         if (currentFreq != null && currentFreq.length > 0) {
             // 使用第一个核心的频率作为当前频率
             cpuInfo.setCurrentFreq(currentFreq[0] > 0 ? FormatUtil.formatHertz(currentFreq[0]) : "N/A");
