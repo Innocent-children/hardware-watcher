@@ -1,0 +1,15 @@
+[Unit]
+Description=Ardware Watcher Service
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/home/hardware-watcher
+ExecStart=/bin/bash /home/hardware-watcher/start.sh
+Restart=on-failure
+RestartSec=10
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
