@@ -6,7 +6,8 @@ import java.util.List;
 
 @Data
 public class HardwareInfo {
-    private CPUInfo CPUInfo;
+    private CPUInfo cpuInfo;
+    private List<FanInfo> fanInfoList; // 添加风扇信息列表
     private MemoryInfo memoryInfo;
     private List<GPUInfo> gpuInfoList;
     private List<StorageInfo> storageInfoList;

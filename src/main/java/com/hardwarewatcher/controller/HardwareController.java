@@ -21,9 +21,4 @@ public class HardwareController {
         model.addAttribute("hardwareInfo", hardwareInfo);
         return "dashboard";
     }
-
-    @GetMapping("/api/hardware")
-    public HardwareInfo getHardwareInfo() {
-        return hardwareService.getHardwareInfo();
-    }
 }

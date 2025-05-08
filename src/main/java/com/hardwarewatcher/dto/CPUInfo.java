@@ -22,4 +22,5 @@ public class CPUInfo {
     private long contextSwitches;
     private long interrupts;
     private List<String> coreFrequencies;
+    private double voltage; // 添加CPU电压字段
 }

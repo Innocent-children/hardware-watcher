@@ -31,11 +31,12 @@ public class HardwareService {
     public HardwareInfo getHardwareInfo() {
         HardwareInfo hardwareInfo = new HardwareInfo();
 
-        hardwareInfo.setCPUInfo(getCPUInfo());
+        hardwareInfo.setCpuInfo(getCPUInfo());
         hardwareInfo.setMemoryInfo(getMemoryInfo());
         hardwareInfo.setGpuInfoList(getGpuInfo());
         hardwareInfo.setStorageInfoList(getStorageInfo());
         hardwareInfo.setNetworkInfoList(getNetworkInfo());
+        hardwareInfo.setFanInfoList(getFanInfo()); // 获取风扇信息
 
         OperatingSystem os = systemInfo.getOperatingSystem();
         hardwareInfo.setSystemName(os.getFamily());
@@ -89,6 +90,7 @@ public class HardwareService {
         // Temperature (if available)
         Sensors sensors = systemInfo.getHardware().getSensors();
         cpuInfo.setTemperature(sensors.getCpuTemperature());
+        cpuInfo.setVoltage(sensors.getCpuVoltage()); // 获取CPU电压
 
         // Additional info
         cpuInfo.setArchitecture(processor.getProcessorIdentifier().getMicroarchitecture());
@@ -100,6 +102,35 @@ public class HardwareService {
         cpuInfo.setInterrupts(ticks[CentralProcessor.TickType.SOFTIRQ.getIndex()]);
 
         return cpuInfo;
+    }
+
+    private List<FanInfo> getFanInfo() {
+        List<FanInfo> fanInfos = new ArrayList<>();
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("sensors");
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Fan")) {
+                    String[] parts = line.split(":");
+                    if (parts.length == 2) {
+                        String name = parts[0].trim();
+                        String speed = parts[1].trim().replaceAll("[^0-9]", ""); // 提取数字部分
+                        FanInfo fanInfo = new FanInfo();
+                        fanInfo.setName(name);
+                        fanInfo.setSpeed(Integer.parseInt(speed));
+                        fanInfo.setStatus("OK");
+                        fanInfos.add(fanInfo);
+                    }
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            System.err.println("Failed to read fan information: " + e.getMessage());
+        }
+        return fanInfos;
     }
 
     private MemoryInfo getMemoryInfo() {
