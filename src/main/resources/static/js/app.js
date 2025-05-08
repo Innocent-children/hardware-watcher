@@ -153,6 +153,8 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('memTotal').textContent = memoryInfo.totalMemory || '-';
         document.getElementById('memUsed').textContent = memoryInfo.usedMemory || '-';
         document.getElementById('memAvailable').textContent = memoryInfo.availableMemory || '-';
+        document.getElementById('swapTotal').textContent = memoryInfo.swapTotal || '-';
+        document.getElementById('swapUsed').textContent = memoryInfo.swapUsed || '-';
 
         const memUsage = memoryInfo.memoryUsagePercentage ? Math.round(memoryInfo.memoryUsagePercentage) : 0;
         document.getElementById('memUsage').textContent = `${memUsage}%`;
