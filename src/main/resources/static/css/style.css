@@ -1,16 +1,16 @@
 :root {
-    --primary-color: #00a8ff;
-    --secondary-color: #0097e6;
+    --primary-color: #007bff; /* Updated */
+    --secondary-color: #0056b3; /* Updated */
     --dark-color: #1e272e;
     --darker-color: #1a2228;
     --light-color: #f5f6fa;
     --danger-color: #e84118;
     --warning-color: #fbc531;
     --success-color: #4cd137;
-    --info-color: #00a8ff;
+    --info-color: #007bff; /* Updated to match new primary */
 
-    --card-bg: #2d3436;
-    --card-border: #3d484d;
+    --card-bg: #2a3033; /* Updated */
+    --card-border: #383f42; /* Updated */
     --text-primary: #f5f6fa;
     --text-secondary: #dcdde1;
 
@@ -39,6 +39,37 @@ body {
     padding: 20px;
 }
 
+/* Animations */
+@keyframes fadeInSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* Apply animations */
+.dashboard-card, .info-card {
+    animation: fadeInSlideUp 0.5s ease-out forwards;
+}
+
+#fanContent p,
+#gpuContent p,
+#storageContent p,
+#networkContent p {
+    animation: pulse 1.5s infinite ease-in-out;
+    font-style: italic; /* Optional: make loading text italic */
+}
+
 .header {
     display: flex;
     justify-content: space-between;
@@ -63,7 +94,7 @@ body {
     font-weight: 700;
     font-size: 1.8rem;
     letter-spacing: 1px;
-    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    background: linear-gradient(90deg, var(--primary-color), #4dabf7); /* Updated */
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -132,8 +163,9 @@ body {
     background-color: var(--card-bg);
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow: hidden; /* Good to keep for contents like progress bars */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* Animation is now applied by the general rule above */
 }
 
 .dashboard-card:hover {
@@ -229,7 +261,7 @@ body {
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    background: linear-gradient(90deg, var(--primary-color), #4dabf7); /* Updated */
     border-radius: 5px;
     width: 0%;
     transition: width 0.5s ease;
@@ -289,6 +321,7 @@ body {
     background-color: var(--card-bg);
     border-radius: 8px;
     padding: 15px 20px;
+    /* Animation is now applied by the general rule above */
 }
 
 .info-card h2 {

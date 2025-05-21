@@ -106,29 +106,46 @@ public class HardwareService {
 
     private List<FanInfo> getFanInfo() {
         List<FanInfo> fanInfos = new ArrayList<>();
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("sensors");
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        Sensors sensors = systemInfo.getHardware().getSensors();
+        oshi.hardware.Fan[] oshiFans = sensors.getFans();
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("Fan")) {
-                    String[] parts = line.split(":");
-                    if (parts.length == 2) {
-                        String name = parts[0].trim();
-                        String speed = parts[1].trim().replaceAll("[^0-9]", ""); // 提取数字部分
-                        FanInfo fanInfo = new FanInfo();
-                        fanInfo.setName(name);
-                        fanInfo.setSpeed(Integer.parseInt(speed));
-                        fanInfo.setStatus("OK");
-                        fanInfos.add(fanInfo);
+        if (oshiFans != null && oshiFans.length > 0) {
+            for (oshi.hardware.Fan oshiFan : oshiFans) {
+                FanInfo fanInfo = new FanInfo();
+                fanInfo.setName(oshiFan.getName().isEmpty() ? "N/A" : oshiFan.getName());
+                fanInfo.setSpeed(oshiFan.getSpeed());
+                fanInfo.setStatus(oshiFan.getSpeed() > 0 ? "OK" : "N/A");
+                fanInfos.add(fanInfo);
+            }
+        } else {
+            // Fallback to sensors command
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder("sensors");
+                Process process = processBuilder.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("Fan")) {
+                        String[] parts = line.split(":");
+                        if (parts.length == 2) {
+                            String name = parts[0].trim();
+                            String speedStr = parts[1].trim().replaceAll("[^0-9]", ""); // 提取数字部分
+                            if (!speedStr.isEmpty()) {
+                                int speed = Integer.parseInt(speedStr);
+                                FanInfo fanInfo = new FanInfo();
+                                fanInfo.setName(name);
+                                fanInfo.setSpeed(speed);
+                                fanInfo.setStatus(speed > 0 ? "OK" : "N/A");
+                                fanInfos.add(fanInfo);
+                            }
+                        }
                     }
                 }
+                reader.close();
+            } catch (IOException | NumberFormatException e) {
+                System.err.println("Failed to read fan information using sensors command: " + e.getMessage());
             }
-            reader.close();
-        } catch (IOException e) {
-            System.err.println("Failed to read fan information: " + e.getMessage());
         }
         return fanInfos;
     }
@@ -158,74 +175,245 @@ public class HardwareService {
 
     private List<GPUInfo> getGpuInfo() {
         List<GPUInfo> gpuInfos = new ArrayList<>();
+        List<oshi.hardware.GraphicsCard> oshiGpus = systemInfo.getHardware().getGraphicsCards();
 
-        try {
-            // 尝试获取NVIDIA GPU信息
-            ProcessBuilder nvidiaProcessBuilder = new ProcessBuilder(
-                    "nvidia-smi",
-                    "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu,driver_version,display_mode",
-                    "--format=csv,noheader,nounits"
-            );
-            Process nvidiaProcess = nvidiaProcessBuilder.start();
-            BufferedReader nvidiaReader = new BufferedReader(new InputStreamReader(nvidiaProcess.getInputStream()));
+        // Temporary list to hold NVIDIA data if needed for matching
+        List<GPUInfo> nvidiaSmiInfos = new ArrayList<>();
+        boolean nvidiaSmiQueried = false;
 
-            String nvidiaLine;
-            while ((nvidiaLine = nvidiaReader.readLine()) != null) {
-                String[] parts = nvidiaLine.split(", ");
-                if (parts.length >= 7) {
-                    GPUInfo info = new GPUInfo();
-                    info.setName(parts[0].trim());
-                    info.setVram(parts[1].trim() + " MB");
-                    info.setUsedVram(parts[2].trim() + " MB");
-
-                    // 计算显存使用百分比
-                    double total = Double.parseDouble(parts[1].trim());
-                    double used = Double.parseDouble(parts[2].trim());
-                    info.setVramUsagePercentage((used / total) * 100);
-
-                    info.setGpuLoad(Double.parseDouble(parts[3].trim()));
-                    info.setTemperature(Double.parseDouble(parts[4].trim()));
-                    info.setDriverVersion(parts[5].trim());
-                    info.setDisplayMode(parts[6].trim());
-
-                    // 显存字节数
-                    info.setVramTotalBytes((long) (total * 1024 * 1024));
-                    info.setVramUsedBytes((long) (used * 1024 * 1024));
-
-                    gpuInfos.add(info);
-                }
+        for (oshi.hardware.GraphicsCard card : oshiGpus) {
+            GPUInfo info = new GPUInfo();
+            info.setName(card.getName());
+            info.setVendor(card.getVendor());
+            info.setDeviceId(card.getDeviceId());
+            info.setVramTotalBytes(card.getVRam()); // OSHI VRam is in bytes
+            // Format VRAM to MB string for the 'vram' field for compatibility, if needed by frontend
+            if (card.getVRam() > 0) {
+                info.setVram(FormatUtil.formatBytes(card.getVRam()).replace("iB", "B"));
+            } else {
+                info.setVram("N/A");
             }
-            nvidiaReader.close();
-        } catch (IOException e) {
-            System.err.println("Failed to read NVIDIA GPU info: " + e.getMessage());
-        }
+            info.setDriverVersion(card.getVersionInfo());
+            // Initialize other fields to default/null
+            info.setUsedVram("N/A");
+            info.setVramUsagePercentage(0.0);
+            info.setGpuLoad(0.0); // OSHI doesn't directly provide a generic GPU load
+            info.setTemperature(Double.NaN); // Use NaN to indicate not set
 
-        // 如果没有NVIDIA GPU信息，尝试获取其他GPU的温度（通过sensors）
-        if (gpuInfos.isEmpty()) {
-            try {
-                ProcessBuilder sensorsProcessBuilder = new ProcessBuilder("sensors");
-                Process sensorsProcess = sensorsProcessBuilder.start();
-                BufferedReader sensorsReader = new BufferedReader(new InputStreamReader(sensorsProcess.getInputStream()));
+            if (card.getVendor().toLowerCase().contains("nvidia")) {
+                if (!nvidiaSmiQueried) {
+                    // Query nvidia-smi once and store results
+                    try {
+                        ProcessBuilder nvidiaProcessBuilder = new ProcessBuilder(
+                                "nvidia-smi",
+                                "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu,driver_version,display_mode",
+                                "--format=csv,noheader,nounits"
+                        );
+                        Process nvidiaProcess = nvidiaProcessBuilder.start();
+                        BufferedReader nvidiaReader = new BufferedReader(new InputStreamReader(nvidiaProcess.getInputStream()));
+                        String nvidiaLine;
+                        while ((nvidiaLine = nvidiaReader.readLine()) != null) {
+                            String[] parts = nvidiaLine.split(", ");
+                            if (parts.length >= 7) {
+                                GPUInfo smiInfo = new GPUInfo();
+                                smiInfo.setName(parts[0].trim());
+                                smiInfo.setVram(parts[1].trim() + " MB"); // Keep this format for matching/comparison
+                                smiInfo.setUsedVram(parts[2].trim() + " MB");
+                                double total = Double.parseDouble(parts[1].trim());
+                                double used = Double.parseDouble(parts[2].trim());
+                                if (total > 0) {
+                                    smiInfo.setVramUsagePercentage((used / total) * 100);
+                                }
+                                smiInfo.setGpuLoad(Double.parseDouble(parts[3].trim()));
+                                smiInfo.setTemperature(Double.parseDouble(parts[4].trim()));
+                                smiInfo.setDriverVersion(parts[5].trim()); // nvidia-smi driver version
+                                smiInfo.setDisplayMode(parts[6].trim());
+                                smiInfo.setVramTotalBytes((long) (total * 1024 * 1024));
+                                smiInfo.setVramUsedBytes((long) (used * 1024 * 1024));
+                                nvidiaSmiInfos.add(smiInfo);
+                            }
+                        }
+                        nvidiaReader.close();
+                    } catch (IOException | NumberFormatException e) {
+                        System.err.println("Failed to read NVIDIA GPU info from nvidia-smi: " + e.getMessage());
+                    }
+                    nvidiaSmiQueried = true;
+                }
 
-                String sensorsLine;
-                Pattern gpuTempPattern = Pattern.compile("(amdgpu|nouveau).*\\+(\\d+\\.\\d+)°C");
-
-                while ((sensorsLine = sensorsReader.readLine()) != null) {
-                    Matcher matcher = gpuTempPattern.matcher(sensorsLine);
-                    if (matcher.find()) {
-                        GPUInfo info = new GPUInfo();
-                        info.setName("AMD/Intel GPU");
-                        info.setTemperature(Double.parseDouble(matcher.group(2)));
-                        gpuInfos.add(info);
-                        break; // 假设只有一个GPU
+                // Try to match OSHI card with nvidia-smi data
+                // Simple matching by name for now, assuming names are somewhat consistent
+                // More robust matching might involve PCI IDs if available and consistent
+                for (GPUInfo smiInfo : nvidiaSmiInfos) {
+                    if (smiInfo.getName().contains(info.getName()) || info.getName().contains(smiInfo.getName())) {
+                        info.setVram(smiInfo.getVram()); // Use nvidia-smi's formatted VRAM
+                        info.setUsedVram(smiInfo.getUsedVram());
+                        info.setVramUsagePercentage(smiInfo.getVramUsagePercentage());
+                        info.setGpuLoad(smiInfo.getGpuLoad());
+                        info.setTemperature(smiInfo.getTemperature());
+                        // Decide which driver version to keep, OSHI or nvidia-smi. OSHI's might be the kernel driver version.
+                        // info.setDriverVersion(smiInfo.getDriverVersion()); // Optionally override
+                        info.setDisplayMode(smiInfo.getDisplayMode());
+                        info.setVramUsedBytes(smiInfo.getVramUsedBytes());
+                        // VramTotalBytes from OSHI should be reliable, but can be overridden if nvidia-smi is preferred
+                        // info.setVramTotalBytes(smiInfo.getVramTotalBytes());
+                        break; // Found a match
                     }
                 }
-                sensorsReader.close();
-            } catch (IOException e) {
-                System.err.println("Failed to read GPU temperature from sensors: " + e.getMessage());
             }
+
+            // Fallback for temperature using 'sensors' if not set by OSHI or nvidia-smi
+            if (Double.isNaN(info.getTemperature()) || info.getTemperature() == 0.0) { // OSHI might return 0.0 for temp
+                try {
+                    ProcessBuilder sensorsProcessBuilder = new ProcessBuilder("sensors");
+                    Process sensorsProcess = sensorsProcessBuilder.start();
+                    BufferedReader sensorsReader = new BufferedReader(new InputStreamReader(sensorsProcess.getInputStream()));
+                    String sensorsLine;
+                    // Generic patterns, attempt to match based on common adapter names
+                    // This is very basic and might pick up CPU temp if GPU temp isn't clearly identifiable
+                    // Example patterns: "temp1", "edge", "junction" for AMD; "Package" for Intel iGPU (often shared with CPU)
+                    // A more specific pattern for GPUs: (amdgpu|nouveau|nvidia).*\+(\d+\.\d+)°C
+                    // For Intel iGPUs, temperature is often part of the CPU package temp and not listed separately by 'sensors'
+                    // Or it might be under "Adapter: ISA adapter" for some integrated graphics.
+                    Pattern tempPattern = Pattern.compile(
+                        "(?i)(?:amdgpu|radeon|nouveau|nvidia|vga|gpu|display|gfx|igpu).*?(?:temp|junction|edge).*?\\+(\\d+\\.\\d+)°C",
+                         Pattern.CASE_INSENSITIVE);
+                    // A more generic pattern if the above fails for some cards
+                    Pattern genericTempPattern = Pattern.compile("temp\\d+:\\s*\\+(\\d+\\.\\d+)°C");
+
+
+                    String potentialGpuNameFromSensors = "";
+                    double parsedTemp = Double.NaN;
+
+                    while ((sensorsLine = sensorsReader.readLine()) != null) {
+                        // Try to identify sections related to the current GPU vendor or name
+                        if (info.getVendor().toLowerCase().contains("amd") && sensorsLine.toLowerCase().contains("amdgpu")) {
+                             potentialGpuNameFromSensors = "amdgpu";
+                        } else if (info.getVendor().toLowerCase().contains("intel") && (sensorsLine.toLowerCase().contains("pch") || sensorsLine.toLowerCase().contains("intel"))) {
+                            // Intel temps are tricky with `sensors`. Often part of CPU or PCH.
+                            // This condition is broad and might not be accurate.
+                            potentialGpuNameFromSensors = "intel";
+                        } else if (sensorsLine.toLowerCase().contains(info.getName().split(" ")[0].toLowerCase())) { // Match first word of GPU name
+                            potentialGpuNameFromSensors = info.getName().toLowerCase();
+                        }
+
+
+                        Matcher matcher = tempPattern.matcher(sensorsLine);
+                        if (matcher.find()) {
+                            // If we have a potential GPU name, check if the line matches
+                            if (!potentialGpuNameFromSensors.isEmpty() && sensorsLine.toLowerCase().contains(potentialGpuNameFromSensors)) {
+                                parsedTemp = Double.parseDouble(matcher.group(1));
+                                break; 
+                            }
+                        }
+                        // If specific pattern didn't match or we don't have a clear GPU section, try generic
+                        if (Double.isNaN(parsedTemp)) {
+                             Matcher genericMatcher = genericTempPattern.matcher(sensorsLine);
+                             if (genericMatcher.find()) {
+                                 // This is a less reliable catch-all. Only use if no other temp found.
+                                 // And try to associate it if the current card is the only one, or if no other temps are found.
+                                 parsedTemp = Double.parseDouble(genericMatcher.group(1));
+                                 // Don't break here, let it find more specific ones if possible
+                             }
+                        }
+                    }
+                    sensorsReader.close();
+                    if (!Double.isNaN(parsedTemp)) {
+                         info.setTemperature(parsedTemp);
+                    }
+
+                } catch (IOException | NumberFormatException e) {
+                    System.err.println("Failed to read GPU temperature from sensors for " + info.getName() + ": " + e.getMessage());
+                }
+            }
+            gpuInfos.add(info);
         }
 
+        // Fallback: If OSHI returned no GPUs, try the old methods
+        if (gpuInfos.isEmpty()) {
+            System.err.println("OSHI returned no graphics cards. Falling back to legacy methods.");
+            // 1. Try nvidia-smi (original broader query)
+            if (!nvidiaSmiQueried) { // Avoid re-querying if already done
+                 try {
+                    ProcessBuilder nvidiaProcessBuilder = new ProcessBuilder(
+                            "nvidia-smi",
+                            "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu,driver_version,display_mode",
+                            "--format=csv,noheader,nounits"
+                    );
+                    Process nvidiaProcess = nvidiaProcessBuilder.start();
+                    BufferedReader nvidiaReader = new BufferedReader(new InputStreamReader(nvidiaProcess.getInputStream()));
+                    String nvidiaLine;
+                    while ((nvidiaLine = nvidiaReader.readLine()) != null) {
+                        String[] parts = nvidiaLine.split(", ");
+                        if (parts.length >= 7) {
+                            GPUInfo smiInfo = new GPUInfo();
+                            smiInfo.setName(parts[0].trim());
+                            smiInfo.setVendor("NVIDIA"); // Assuming nvidia-smi means NVIDIA
+                            smiInfo.setVram(parts[1].trim() + " MB");
+                            smiInfo.setUsedVram(parts[2].trim() + " MB");
+                            double total = Double.parseDouble(parts[1].trim());
+                            double used = Double.parseDouble(parts[2].trim());
+                             if (total > 0) {
+                                smiInfo.setVramUsagePercentage((used / total) * 100);
+                            }
+                            smiInfo.setGpuLoad(Double.parseDouble(parts[3].trim()));
+                            smiInfo.setTemperature(Double.parseDouble(parts[4].trim()));
+                            smiInfo.setDriverVersion(parts[5].trim());
+                            smiInfo.setDisplayMode(parts[6].trim());
+                            smiInfo.setVramTotalBytes((long) (total * 1024 * 1024));
+                            smiInfo.setVramUsedBytes((long) (used * 1024 * 1024));
+                            gpuInfos.add(smiInfo); // Add directly to gpuInfos
+                        }
+                    }
+                    nvidiaReader.close();
+                } catch (IOException | NumberFormatException e) {
+                    System.err.println("Failed to read NVIDIA GPU info from nvidia-smi (fallback): " + e.getMessage());
+                }
+            }
+
+
+            // 2. If still empty (no NVIDIA cards or nvidia-smi failed), try sensors for other GPUs (original sensors fallback)
+            if (gpuInfos.isEmpty()) {
+                try {
+                    ProcessBuilder sensorsProcessBuilder = new ProcessBuilder("sensors");
+                    Process sensorsProcess = sensorsProcessBuilder.start();
+                    BufferedReader sensorsReader = new BufferedReader(new InputStreamReader(sensorsProcess.getInputStream()));
+                    String sensorsLine;
+                    // This pattern is from the original code, specific to amdgpu/nouveau
+                    Pattern gpuTempPattern = Pattern.compile("(amdgpu|nouveau).*\\+(\\d+\\.\\d+)°C");
+                    while ((sensorsLine = sensorsReader.readLine()) != null) {
+                        Matcher matcher = gpuTempPattern.matcher(sensorsLine);
+                        if (matcher.find()) {
+                            GPUInfo info = new GPUInfo(); // Create a new one as we have no OSHI baseline
+                            // Try to infer vendor/name from the pattern
+                            String matchedName = matcher.group(1);
+                            if (matchedName.equalsIgnoreCase("amdgpu")) {
+                                info.setName("AMD GPU (from sensors)");
+                                info.setVendor("AMD");
+                            } else if (matchedName.equalsIgnoreCase("nouveau")) {
+                                info.setName("NVIDIA GPU (Nouveau - from sensors)");
+                                info.setVendor("NVIDIA (Nouveau)");
+                            } else {
+                                info.setName("Unknown GPU (from sensors)");
+                            }
+                            info.setTemperature(Double.parseDouble(matcher.group(2)));
+                            // Set other fields to N/A or default
+                             info.setVram("N/A");
+                             info.setUsedVram("N/A");
+                             info.setVramTotalBytes(0);
+                             info.setVramUsedBytes(0);
+                            gpuInfos.add(info);
+                            // Original code assumed one GPU from sensors, this could be adapted if sensors output lists multiple clearly
+                            // For now, let's keep it simple and potentially take the first one or all that match.
+                            // The original code had 'break', taking only the first.
+                            // If multiple are found by this regex, they would be added.
+                        }
+                    }
+                    sensorsReader.close();
+                } catch (IOException | NumberFormatException e) {
+                    System.err.println("Failed to read GPU temperature from sensors (fallback): " + e.getMessage());
+                }
+            }
+        }
         return gpuInfos;
     }
 

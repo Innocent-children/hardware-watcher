@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
             gpuElement.innerHTML = `
                 <h3>${gpu.name || `GPU ${index + 1}`} <span class="vendor">${gpu.vendor || ''}</span></h3>
                 <div class="info-grid">
+                    <div><span>Device ID:</span> <span>${gpu.deviceId || '-'}</span></div>
                     <div><span>VRAM:</span> <span>${gpu.usedVram || '-'} / ${gpu.vram || '-'}</span></div>
                     <div><span>Driver:</span> <span>${gpu.driverVersion || '-'}</span></div>
                     <div><span>Display:</span> <span>${gpu.displayMode || '-'}</span></div>
